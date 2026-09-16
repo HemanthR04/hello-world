@@ -118,8 +118,10 @@ def build_app():
 if __name__ == "__main__":
     import uvicorn
 
+    # Most PaaS hosts (Render, Railway, Heroku) inject PORT to bind to.
+    port = int(os.environ.get("PORT") or os.environ.get("MCP_PORT", "8000"))
     uvicorn.run(
         build_app(),
         host=os.environ.get("MCP_HOST", "0.0.0.0"),
-        port=int(os.environ.get("MCP_PORT", "8000")),
+        port=port,
     )

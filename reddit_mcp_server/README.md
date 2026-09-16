@@ -21,7 +21,7 @@ existing subscription -- there's no separate LLM API bill for this.
 - `send_dm(username, subject, body)` - start a new DM to someone
 - `mark_all_read()` - clear the unread inbox
 
-## Setup
+## Setup (with a computer + terminal)
 
 1. Create a Reddit "script" app at https://www.reddit.com/prefs/apps
    (note the client id under the app name, and the secret).
@@ -41,7 +41,8 @@ existing subscription -- there's no separate LLM API bill for this.
    python server.py
    ```
 
-   This starts a streamable-HTTP MCP server on `http://0.0.0.0:8000/mcp`.
+   This starts a streamable-HTTP MCP server on `http://0.0.0.0:8000/mcp`
+   (it also respects a `PORT` env var, for PaaS hosts that set one).
 
 4. Expose it to the public internet so Grok can reach it. For local
    testing, a tunnel is the quickest option:
@@ -63,3 +64,42 @@ existing subscription -- there's no separate LLM API bill for this.
 
 Once connected, you can ask Grok things like "check my Reddit DMs and draft
 replies" and it will call these tools directly.
+
+## Setup (phone only, no computer -- deploy on Render)
+
+Render's free web-service tier builds straight from a GitHub repo, so
+everything below is doable from Safari on an iPhone.
+
+1. **Create the Reddit app** at https://www.reddit.com/prefs/apps in
+   Safari (choose "script" type). Note the client id (under the app name)
+   and secret.
+2. **Pick an auth token** -- any long random string you make up works
+   (e.g. mash your keyboard for 30+ characters). You'll paste this into
+   both Render and Grok.
+3. **Sign up at https://render.com** (GitHub login is easiest).
+4. **New -> Web Service -> Build and deploy from a Git repository**,
+   connect your `hello-world` repo, branch
+   `claude/review-shared-conversation-nlk330` (or `main` once merged).
+5. Configure the service:
+   - **Root Directory**: `reddit_mcp_server`
+   - **Runtime**: Python 3
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `python server.py`
+   - **Instance Type**: Free
+6. Under **Environment**, add these variables:
+   - `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`,
+     `REDDIT_PASSWORD` -- from step 1
+   - `MCP_AUTH_TOKEN` -- from step 2
+
+   (Render sets `PORT` itself -- leave that one alone, `server.py` reads
+   it automatically.)
+7. **Deploy.** Render gives you a URL like
+   `https://reddit-dm-mcp.onrender.com`.
+8. In Grok (grok.com/connectors in Safari, or the connector settings in
+   the iOS app), **Add Connector -> Custom**:
+   - **Server URL**: `https://reddit-dm-mcp.onrender.com/mcp`
+   - **Authorization header**: `Bearer <the MCP_AUTH_TOKEN from step 2>`
+
+Free Render web services spin down after inactivity and take a few
+seconds to wake on the next request -- fine here, since this server only
+does something when Grok calls it, it isn't polling in the background.
